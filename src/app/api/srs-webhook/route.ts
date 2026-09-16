@@ -34,7 +34,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Answers not found' }, { status: 404 });
     }
 
-    const conceptTags = Array.from(new Set(answers.map((a: any) => a.question.concept_tag)));
+    const conceptTags = Array.from(
+      new Set(
+        answers
+          .map((a: any) => (Array.isArray(a.question) ? a.question[0]?.concept_tag : a.question?.concept_tag))
+          .filter(Boolean)
+      )
+    );
     
     const { data: currentLedger, error: ledgerError } = await supabase
       .from('spaced_repetition_ledger')
@@ -46,12 +52,14 @@ export async function POST(req: Request) {
       throw new Error('Failed to fetch existing ledger records');
     }
 
-    const ledgerMap = new Map(currentLedger?.map(item => [item.concept_tag, item]) || []);
+    const ledgerMap = new Map((currentLedger || []).map((item: any) => [item.concept_tag, item]));
     
     const updatesMap = new Map();
 
     for (const answer of answers) {
-      const tag = answer.question.concept_tag;
+      const q: any = Array.isArray(answer.question) ? answer.question[0] : answer.question;
+      const tag = q?.concept_tag;
+      if (!tag) continue;
       const isCorrect = answer.is_correct;
       
       const prev = updatesMap.get(tag) || ledgerMap.get(tag) || {

@@ -16,3 +16,30 @@ export const GeneratedQuizSchema = z.object({
 
 export type QuizQuestion = z.infer<typeof QuizQuestionSchema>;
 export type GeneratedQuiz = z.infer<typeof GeneratedQuizSchema>;
+
+export const GeneratedQuizJsonSchema = {
+  type: 'object',
+  properties: {
+    title: { type: 'string', description: 'A catchy, relevant title for the generated quiz.' },
+    description: { type: 'string', description: 'A short, engaging description of what the quiz covers.' },
+    subject: { type: 'string', description: 'The overarching subject area.' },
+    questions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          question_text: { type: 'string', description: 'The text of the multiple choice question.' },
+          options: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Exactly four possible answers for the question.'
+          },
+          correct_answer: { type: 'string', description: 'The exact string of the correct answer, which must match one of the items in options.' },
+          concept_tag: { type: 'string', description: 'A concise tag representing the core concept tested.' }
+        },
+        required: ['question_text', 'options', 'correct_answer', 'concept_tag']
+      }
+    }
+  },
+  required: ['title', 'description', 'subject', 'questions']
+};

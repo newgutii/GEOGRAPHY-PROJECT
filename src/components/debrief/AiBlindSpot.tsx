@@ -8,10 +8,10 @@ export default async function AiBlindSpot({ missedTags }: { missedTags: string[]
   if (missedTags.length > 0) {
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+        model: 'gemini-2.5-flash',
         contents: `The user just took a quiz and missed questions related to these concepts: ${missedTags.join(', ')}. Write a brief 2-3 sentence insight identifying their blind spot and encouraging them. Keep it direct, professional, and slightly analytical. Return plain text only.`,
       });
-      insight = response.text() || insight;
+      insight = response.text || insight;
     } catch (error) {
       console.error("Failed to generate AI Blind Spot insight:", error);
     }

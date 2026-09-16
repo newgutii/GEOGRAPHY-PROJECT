@@ -38,13 +38,13 @@ export default function QuizEngine({
   
   useEffect(() => {
     questionStartTimeRef.current = Date.now();
-    setHint(null);
-  }, [currentIndex]);
+  }, []);
   
   const handleOptionSelect = async (selectedOption: string) => {
     if (isSubmitting) return;
     
-    const timeTakenMs = Date.now() - questionStartTimeRef.current;
+    const now = Date.now();
+    const timeTakenMs = questionStartTimeRef.current > 0 ? now - questionStartTimeRef.current : 0;
     const isCorrect = selectedOption === currentQuestion.correct_answer;
     
     const newAnswers = [
@@ -61,6 +61,8 @@ export default function QuizEngine({
     
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(prev => prev + 1);
+      setHint(null);
+      questionStartTimeRef.current = Date.now();
     } else {
       setIsSubmitting(true);
       

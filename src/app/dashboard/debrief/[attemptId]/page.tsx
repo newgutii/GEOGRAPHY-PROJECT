@@ -6,7 +6,8 @@ import AiBlindSpot from '@/components/debrief/AiBlindSpot';
 import AiBlindSpotSkeleton from '@/components/debrief/AiBlindSpotSkeleton';
 import ErrorLedger from '@/components/debrief/ErrorLedger';
 
-export default async function DebriefPage({ params }: { params: { attemptId: string } }) {
+export default async function DebriefPage({ params }: { params: Promise<{ attemptId: string }> | { attemptId: string } }) {
+  const resolvedParams = await params;
   const supabase = await createClient();
   
   const { data: attempt, error } = await supabase
@@ -23,7 +24,7 @@ export default async function DebriefPage({ params }: { params: { attemptId: str
       ),
       ghost:user_attempts!ghost_reference_id(answers_per_second)
     `)
-    .eq('id', params.attemptId)
+    .eq('id', resolvedParams.attemptId)
     .single();
 
   if (error || !attempt) {
@@ -38,8 +39,14 @@ export default async function DebriefPage({ params }: { params: { attemptId: str
     ? attempt.answers_per_second - attempt.ghost.answers_per_second 
     : null;
 
-  const missedAnswers = attempt.answers.filter((a: any) => !a.is_correct);
-  const missedTags = Array.from(new Set(missedAnswers.map((a: any) => a.question.concept_tag)));
+  const missedAnswers = (attempt.answers || []).filter((a: any) => !a.is_correct);
+  const missedTags = Array.from(
+    new Set(
+      missedAnswers
+        .map((a: any) => (Array.isArray(a.question) ? a.question[0]?.concept_tag : a.question?.concept_tag))
+        .filter(Boolean)
+    )
+  );
 
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-50 p-6 md:p-16 md:pt-24 font-sans selection:bg-purple-500/30">

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { GeneratedQuizSchema } from '@/lib/gemini/schemas';
+import { GeneratedQuizSchema, GeneratedQuizJsonSchema } from '@/lib/gemini/schemas';
 
 const ai = new GoogleGenAI({});
 
@@ -13,7 +13,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
-    const jsonSchema = zodToJsonSchema(GeneratedQuizSchema as any, 'GeneratedQuizSchema').definitions?.GeneratedQuizSchema;
+    const zodDef = zodToJsonSchema(GeneratedQuizSchema as any, 'GeneratedQuizSchema').definitions?.GeneratedQuizSchema;
+    const jsonSchema = (zodDef && Object.keys(zodDef).length > 0) ? zodDef : GeneratedQuizJsonSchema;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.5-flash-lite',
@@ -31,7 +32,19 @@ export async function POST(req: Request) {
       }
     });
 
+    console.log("RAW RESPONSE:", response.text);
+
     let rawData = JSON.parse(response.text || '{}');
+
+    if (Array.isArray(rawData) && rawData.length > 0) {
+      rawData = rawData[0];
+    }
+
+    if (rawData?.GeneratedQuizSchema) {
+      rawData = rawData.GeneratedQuizSchema;
+    } else if (rawData?.quiz) {
+      rawData = rawData.quiz;
+    }
 
     if (Array.isArray(rawData) && rawData.length > 0) {
       rawData = rawData[0];

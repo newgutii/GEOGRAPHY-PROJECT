@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { calculateNextReview } from '@/lib/srs/algorithm';
 
 export type SubmitAttemptPayload = {
   quizId: string;
@@ -72,6 +73,66 @@ export async function submitQuizAttempt(payload: SubmitAttemptPayload) {
   if (answersError) {
     console.error('Failed to save granular answers:', answersError);
     throw new Error('Failed to save individual answer records');
+  }
+
+  // Update Spaced Repetition Ledger
+  try {
+    const questionIds = answers.map(a => a.questionId);
+    const { data: questions } = await supabase
+      .from('quiz_questions')
+      .select('id, concept_tag')
+      .in('id', questionIds);
+
+    const questionMap = new Map((questions || []).map((q: any) => [q.id, q.concept_tag]));
+    const conceptTags = Array.from(new Set(answers.map(a => questionMap.get(a.questionId)).filter(Boolean)));
+
+    if (conceptTags.length > 0) {
+      const { data: currentLedger } = await supabase
+        .from('spaced_repetition_ledger')
+        .select('*')
+        .eq('user_id', user.id)
+        .in('concept_tag', conceptTags);
+
+      const ledgerMap = new Map((currentLedger || []).map((item: any) => [item.concept_tag, item]));
+      const updatesMap = new Map();
+
+      for (const ans of answers) {
+        const tag = questionMap.get(ans.questionId);
+        if (!tag) continue;
+
+        const prev = updatesMap.get(tag) || ledgerMap.get(tag) || {
+          ease_factor: 2.50,
+          interval_days: 0,
+          consecutive_correct: 0,
+        };
+
+        const result = calculateNextReview(ans.isCorrect, {
+          easeFactor: prev.ease_factor || 2.50,
+          intervalDays: prev.interval_days || 0,
+          consecutiveCorrect: prev.consecutive_correct || 0,
+        });
+
+        updatesMap.set(tag, {
+          user_id: user.id,
+          concept_tag: tag,
+          state: result.state,
+          next_review_date: result.nextReviewDate.toISOString(),
+          ease_factor: result.easeFactor,
+          interval_days: result.intervalDays,
+          consecutive_correct: result.consecutiveCorrect,
+          last_reviewed_at: new Date().toISOString(),
+        });
+      }
+
+      const upsertPayload = Array.from(updatesMap.values());
+      if (upsertPayload.length > 0) {
+        await supabase
+          .from('spaced_repetition_ledger')
+          .upsert(upsertPayload, { onConflict: 'user_id, concept_tag' });
+      }
+    }
+  } catch (srsErr) {
+    console.warn('SRS update caught:', srsErr);
   }
 
   revalidatePath('/dashboard'); 

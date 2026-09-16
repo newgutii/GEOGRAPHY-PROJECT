@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { GoogleGenAI } from '@google/genai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { GeneratedQuizSchema } from '@/lib/gemini/schemas';
+import { GeneratedQuizSchema, GeneratedQuizJsonSchema } from '@/lib/gemini/schemas';
 import { saveGeneratedQuiz } from '@/actions/quizzes';
 import Link from 'next/link';
 
@@ -11,7 +11,7 @@ export default async function DailyMixPage() {
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
-    redirect('/login');
+    redirect('/dashboard');
   }
 
   const { data: dueConcepts, error: ledgerError } = await supabase
@@ -51,11 +51,12 @@ export default async function DailyMixPage() {
     );
   }
 
-  const tags = dueConcepts.map(c => c.concept_tag);
+  const tags = dueConcepts.map((c: any) => c.concept_tag);
   const prompt = `Generate a ${tags.length}-question quiz specifically testing the following concepts: ${tags.join(', ')}. Create exactly one distinct question per concept.`;
 
   const ai = new GoogleGenAI({});
-  const jsonSchema = zodToJsonSchema(GeneratedQuizSchema as any, "GeneratedQuizSchema").definitions?.GeneratedQuizSchema;
+  const zodDef = zodToJsonSchema(GeneratedQuizSchema as any, "GeneratedQuizSchema").definitions?.GeneratedQuizSchema;
+  const jsonSchema = (zodDef && Object.keys(zodDef).length > 0) ? zodDef : GeneratedQuizJsonSchema;
 
   try {
     const response = await ai.models.generateContent({
@@ -74,7 +75,19 @@ export default async function DailyMixPage() {
       }
     });
 
+    console.log("RAW RESPONSE:", response.text);
+
     let rawData = JSON.parse(response.text || '{}');
+
+    if (Array.isArray(rawData) && rawData.length > 0) {
+      rawData = rawData[0];
+    }
+
+    if (rawData?.GeneratedQuizSchema) {
+      rawData = rawData.GeneratedQuizSchema;
+    } else if (rawData?.quiz) {
+      rawData = rawData.quiz;
+    }
 
     if (Array.isArray(rawData) && rawData.length > 0) {
       rawData = rawData[0];

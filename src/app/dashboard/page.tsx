@@ -13,13 +13,13 @@ export default function DashboardPage() {
       title: 'World Capitals', 
       desc: 'Geography fundamentals', 
       color: 'bg-zinc-900/50 text-zinc-300 border-zinc-800/80', 
-      href: '#' 
+      href: '/quiz/world-capitals' 
     },
     { 
       title: 'React Hooks', 
       desc: 'Frontend state management', 
       color: 'bg-zinc-900/50 text-zinc-300 border-zinc-800/80', 
-      href: '#' 
+      href: '/quiz/react-hooks' 
     },
   ];
 

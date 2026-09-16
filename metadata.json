@@ -1,0 +1,6 @@
+{
+  "name": "Geography & Concept Quiz",
+  "description": "AI-powered adaptive quiz engine with spaced repetition and intelligent debriefing",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
