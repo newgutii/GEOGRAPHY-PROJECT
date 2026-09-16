@@ -3,11 +3,11 @@
 import { createClient } from '@/lib/supabase/server';
 import { GeneratedQuiz } from '@/lib/gemini/schemas';
 
-export async function saveGeneratedQuiz(quizData: GeneratedQuiz) {
+export async function saveGeneratedQuiz(
+  quizData: GeneratedQuiz,
+  meta?: { difficulty?: string; timeLimit?: number }
+) {
   const supabase = await createClient();
-
-  // 🚨 TEMPORARY AUTH BYPASS for local testing
-  // We are skipping the getUser() check and leaving 'created_by' as null
 
   // 1. Insert the parent Quiz record
   const { data: quiz, error: quizError } = await supabase
@@ -17,7 +17,8 @@ export async function saveGeneratedQuiz(quizData: GeneratedQuiz) {
       description: quizData.description,
       subject: quizData.subject,
       is_ai_generated: true,
-      // created_by: user.id, <- Commented out until we build the login screen
+      difficulty: meta?.difficulty || 'Intermediate',
+      time_limit_per_question: meta?.timeLimit ?? 20,
     })
     .select('id')
     .single();

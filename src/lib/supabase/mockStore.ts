@@ -6,6 +6,8 @@ export interface QuizRecord {
   description: string;
   subject: string;
   is_ai_generated: boolean;
+  difficulty?: string | null;
+  time_limit_per_question?: number | null;
   created_by?: string | null;
   created_at?: string;
 }
@@ -77,6 +79,8 @@ if (!globalStore.__mockQuizzes) {
     description: 'Geography fundamentals testing international capitals.',
     subject: 'Geography',
     is_ai_generated: false,
+    difficulty: 'Intermediate',
+    time_limit_per_question: 20,
     created_by: 'system',
     created_at: new Date().toISOString(),
   });
@@ -136,6 +140,8 @@ if (!globalStore.__mockQuizzes) {
     description: 'Frontend state management and lifecycle essentials.',
     subject: 'Web Development',
     is_ai_generated: false,
+    difficulty: 'Intermediate',
+    time_limit_per_question: 20,
     created_by: 'system',
     created_at: new Date().toISOString(),
   });

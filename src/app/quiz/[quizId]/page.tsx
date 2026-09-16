@@ -17,13 +17,28 @@ export default async function QuizPage({
     .eq('quiz_id', quizId)
     .order('order_index', { ascending: true });
 
+  const { data: quiz } = await supabase
+    .from('quizzes')
+    .select('id, title, description, subject, difficulty, time_limit_per_question')
+    .eq('id', quizId)
+    .single();
+
   if (error || !questions || questions.length === 0) {
     return notFound();
   }
 
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-50 flex flex-col items-center justify-center p-6 md:p-16 font-sans">
-      <QuizEngine quizId={quizId} questions={questions as any} />
+      <QuizEngine 
+        quizId={quizId} 
+        questions={questions as any}
+        quizMeta={{
+          title: quiz?.title || 'Knowledge Quiz',
+          subject: quiz?.subject,
+          difficulty: quiz?.difficulty || 'Intermediate',
+          timeLimitPerQuestion: typeof quiz?.time_limit_per_question === 'number' ? quiz.time_limit_per_question : 20,
+        }}
+      />
     </div>
   );
 }
